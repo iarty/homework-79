@@ -3,7 +3,7 @@ const PORT = 8000;
 const config = {
   host: 'localhost',
   user: 'admin',
-  database: 'homework-79',
+  database: "Artem",
   password:'1221'
 };
 
