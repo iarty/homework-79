@@ -6,7 +6,7 @@ router.get("/categories", async (req, res) => {
   try {
     const categories = await mysqlDb
       .connection()
-      .query("SELECT * FROM `categories`");
+      .query("SELECT `id`,`name` FROM `categories`");
     if (!categories[0]) {
       return res.status(404).send({ message: "Not found" });
     }
@@ -33,13 +33,21 @@ router.get("/categories/:id", async (req, res) => {
 
 router.post("/categories", async (req, res) => {
   try {
-    const category = await mysqlDb
+    console.log(req.body);
+    if (!req.body.name) {
+      return res.status(500).json({ error: "Empty name" });
+    }
+    const response = await mysqlDb
       .connection()
       .query(
         "INSERT INTO `categories` (`name`,`description`) VALUES" + "(?,?)",
         [req.body.name, req.body.description]
       );
-    return res.status(200).json({ category: category[0] });
+    const category = await mysqlDb
+      .connection()
+      .query("SELECT * FROM `categories` WHERE id =?", response[0].insertId);
+    const [TextRows] = category[0];
+    return res.status(200).json({ category: TextRows });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }
@@ -65,7 +73,10 @@ router.put("/categories/:id", async (req, res) => {
         req.body.description,
         req.params.id
       ]);
-    res.status(200).json({ message: "updated successful" });
+    const category = await mysqlDb
+      .connection()
+      .query("SELECT * FROM `categories` WHERE id =?", req.params.id);
+    res.status(200).json({ category: category[0] });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }

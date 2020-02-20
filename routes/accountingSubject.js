@@ -9,7 +9,9 @@ router.get("/items", async (req, res) => {
   try {
     const items = await mysqlDb
       .connection()
-      .query("SELECT * FROM `accounting_subject`");
+      .query(
+        "SELECT `id`,`category_id`,`location_id`,`name` FROM `accounting_subject`"
+      );
     if (!items[0]) {
       return res.status(404).send({ message: "Not found" });
     }
@@ -35,10 +37,13 @@ router.get("/items/:id", async (req, res) => {
 
 router.post("/items", upload.single("image"), async (req, res) => {
   try {
+    if (!req.body.name || !req.body.category_id || !req.body.location_id) {
+      return res.status(500).json({ error: "Empty fields" });
+    }
     if (req.file) {
       req.body.image = `uploads/${req.file.filename}`;
     }
-    const items = await mysqlDb
+    const response = await mysqlDb
       .connection()
       .query(
         "INSERT INTO `accounting_subject` (`category_id`,`location_id`,`name`,`description`,`image`) VALUES" +
@@ -51,8 +56,14 @@ router.post("/items", upload.single("image"), async (req, res) => {
           req.body.image
         ]
       );
-
-    return res.status(201).json({ items });
+    const items = await mysqlDb
+      .connection()
+      .query(
+        "SELECT * FROM `accounting_subject` WHERE id =?",
+        response[0].insertId
+      );
+    const [TextRows] = items[0];
+    return res.status(201).json({ items: TextRows });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }
@@ -74,7 +85,6 @@ router.put("/items/:id", upload.single("image"), async (req, res) => {
     if (req.file) {
       req.body.image = `uploads/${req.file.filename}`;
     }
-    // console.log(req.body);
     await mysqlDb
       .connection()
       .query(
@@ -88,7 +98,10 @@ router.put("/items/:id", upload.single("image"), async (req, res) => {
           req.params.id
         ]
       );
-    res.status(200).json({ message: "updated successful" });
+    const items = await mysqlDb
+      .connection()
+      .query("SELECT * FROM `accounting_subject` WHERE id =?", req.params.id);
+    return res.status(201).json({ items: items[0] });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }

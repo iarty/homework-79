@@ -6,7 +6,7 @@ router.get("/locations", async (req, res) => {
   try {
     const locations = await mysqlDb
       .connection()
-      .query("SELECT * FROM `location`");
+      .query("SELECT `id`,`name` FROM `location`");
     if (!locations[0]) {
       return res.status(404).send({ message: "Not found" });
     }
@@ -32,13 +32,20 @@ router.get("/locations/:id", async (req, res) => {
 
 router.post("/locations", async (req, res) => {
   try {
-    const locations = await mysqlDb
+    if (!req.body.name) {
+      return res.status(500).json({ error: "Empty name" });
+    }
+    const response = await mysqlDb
       .connection()
       .query("INSERT INTO `location` (`name`,`description`) VALUES" + "(?,?)", [
         req.body.name,
         req.body.description
       ]);
-    return res.status(200).json({ locations: locations[0] });
+    const locations = await mysqlDb
+      .connection()
+      .query("SELECT * FROM `location` WHERE id =?", response[0].insertId);
+    const [TextRows] = locations[0];
+    return res.status(200).json({ locations: TextRows });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }
@@ -64,7 +71,10 @@ router.put("/locations/:id", async (req, res) => {
         req.body.description,
         req.params.id
       ]);
-    res.status(200).json({ message: "updated successful" });
+    const locations = await mysqlDb
+      .connection()
+      .query("SELECT * FROM `location` WHERE id =?", req.params.id);
+    res.status(200).json({ locations: locations[0] });
   } catch (e) {
     return res.status(500).json({ message: "Something went wrong, try again" });
   }
